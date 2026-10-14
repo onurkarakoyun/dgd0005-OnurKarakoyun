@@ -36,16 +36,16 @@ Onur Karakoyun · DGD0005 Multiplayer Programming · Homework 1
 
 ## Connection card (Step 11)
 
-| | Direction 1 | Direction 2 |
+| | Direction 1 (desktop = server) | Direction 2 (laptop = server) |
 |---|---|---|
-| Partner | own laptop (partner session still to do) | own laptop |
-| Network | home Wi-Fi (192.168.1.x) | home Wi-Fi |
-| Server IP | 192.168.1.7 (desktop) | — |
-| My ClientId + side | — | — |
-| RTT | — | — |
-| Worked first try? | **No** — the client did not connect | not tried yet |
+| Partner | own laptop (partner session over hotspot still to do) | own laptop |
+| Network | home network (192.168.1.x) | home network |
+| Server IP | 192.168.1.7 (desktop, Ethernet) | _fill in_ |
+| My ClientId + side | desktop: client 0, LEFT · laptop: client _?_, RIGHT | _fill in_ |
+| RTT | laptop: _? ms_ | _fill in_ |
+| Worked first try? | **No.** The desktop's network was set to *Public* and Windows Defender Firewall had an inbound **Block** rule for "Unity 6000.3.2f1 Editor" on Public. After allowing Unity for Private + Public it connected: server HUD showed `Clients: 2`. | _fill in_ |
 
-Next attempt: both machines on one phone hotspot, Windows Defender Firewall ▸ allow Unity for Private **and** Public on the server machine, then swap roles to find which firewall blocks (Notes 11).
+Lesson (Notes 11): "Starting → Stopped" with the right IP is almost always the **server's** firewall, not the code.
 
 ---
 
