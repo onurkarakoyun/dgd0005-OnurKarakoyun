@@ -35,7 +35,7 @@ public class ServerBootstrap : MonoBehaviour
 
     private static bool HasPlayModeTag(string tag)
     {
-        foreach (string t in CurrentPlayer.ReadOnlyTags())
+        foreach (string t in CurrentPlayer.Tags)
             if (string.Equals(t, tag, StringComparison.OrdinalIgnoreCase)) return true;
         return false;
     }

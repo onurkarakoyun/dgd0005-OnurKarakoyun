@@ -103,11 +103,11 @@ public class ConnectionHud : MonoBehaviour
     {
         if (_box == null)
         {
-            _box = new GUIStyle(GUI.skin.box) { alignment = TextAnchor.UpperLeft, fontSize = 14, richText = true, padding = new RectOffset(8, 8, 6, 6) };
+            _box = new GUIStyle(GUI.skin.box) { alignment = TextAnchor.UpperLeft, fontSize = 12, richText = true, padding = new RectOffset(6, 6, 4, 4) };
             _flashStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 40, fontStyle = FontStyle.Bold };
         }
 
-        GUILayout.BeginArea(new Rect(10, 10, 300, Screen.height - 20));
+        GUILayout.BeginArea(new Rect(8, 8, 250, Screen.height - 16));
 
         if (_nm == null)
         {
@@ -121,12 +121,12 @@ public class ConnectionHud : MonoBehaviour
 
         // --- buttons ---
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button(server ? "Stop Server" : "Start Server", GUILayout.Height(28)))
+        if (GUILayout.Button(server ? "Stop Server" : "Start Server", GUILayout.Height(24)))
         {
             if (server) _nm.ServerManager.StopConnection(true);
             else        _nm.ServerManager.StartConnection();
         }
-        if (GUILayout.Button(client ? "Stop Client" : "Start Client", GUILayout.Height(28)))
+        if (GUILayout.Button(client ? "Stop Client" : "Start Client", GUILayout.Height(24)))
         {
             if (client) _nm.ClientManager.StopConnection();
             else        _nm.ClientManager.StartConnection(_address.Trim());
@@ -154,8 +154,10 @@ public class ConnectionHud : MonoBehaviour
             if (client) text += $"\nClient in/out B/s: {_clientInPs} / {_clientOutPs}";
         }
         GUILayout.Box(text, _box);
+        GUILayout.EndArea();
 
-        // --- your panels ---
+        // --- your panels, top right ---
+        GUILayout.BeginArea(new Rect(Screen.width - 238, 8, 230, Screen.height - 16));
         for (int i = 0; i < Panels.Count; i++)
         {
             string s;
