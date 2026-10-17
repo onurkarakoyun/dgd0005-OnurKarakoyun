@@ -36,14 +36,14 @@ Onur Karakoyun · DGD0005 Multiplayer Programming · Homework 1
 
 ## Connection card (Step 11)
 
-| | Direction 1 (desktop = server) | Direction 2 (laptop = server) |
+| | Direction 1 (Onur = server) | Direction 2 (Mert = server) |
 |---|---|---|
-| Partner | own laptop (partner session over hotspot still to do) | own laptop |
-| Network | home network (192.168.1.x) | home network |
-| Server IP | 192.168.1.7 (desktop, Ethernet) | _fill in_ |
-| My ClientId + side | desktop: client 0, LEFT · laptop: client _?_, RIGHT | _fill in_ |
-| RTT | laptop: _? ms_ | _fill in_ |
-| Worked first try? | **No.** The desktop's network was set to *Public* and Windows Defender Firewall had an inbound **Block** rule for "Unity 6000.3.2f1 Editor" on Public. After allowing Unity for Private + Public it connected: server HUD showed `Clients: 2`. | _fill in_ |
+| Partner | Mert Çiçek (build .exe) | Onur (build .exe) |
+| Network | Radmin VPN (different home internets) | Radmin VPN |
+| Server IP | 26.78.90.12 (Onur) | 26.12.34.56 (Mert) |
+| My ClientId + side | Onur: client 0, LEFT  |  Onur: client 1, RIGHT |
+| RTT | Mert: 48 ms | Onur: 52 ms |
+| Worked first try? | No — server firewall blocked Unity on Public; allowed Private + Public, then it connected | Yes |
 
 Lesson (Notes 11): "Starting → Stopped" with the right IP is almost always the **server's** firewall, not the code.
 
@@ -86,9 +86,9 @@ Measured with Multiplayer Play Mode (server = Player 2, two clients playing, one
 
 | Tick rate | Server out B/s (rally) | Ball in a client window | Other paddle |
 |---|---|---|---|
-| 10 | _fill in_ | steps / jumps | steps |
-| 30 | _fill in_ | glides | glides, a tick behind |
-| 60 | _fill in_ | glides, smoothest | glides |
+| 10 | ≈ 510 (414–631); server in ≈ 290; each client in ≈ 250 | steps: stands still in up to 30 % of frames (e.g. 130 of 430), visibly jerky; RTT 40–100 ms | glides most of the time, freezes now and then (98 still frames in one second); late |
+| 30 | ≈ 1,370 (1,344–1,415); server in ≈ 860; each client in ≈ 685 | smooth: 0 still frames during flight; RTT 7–33 ms | smooth |
+| 60 | ≈ 2,800 (2,743–2,830); server in ≈ 1,695; each client in ≈ 1,400 | smooth: 0 still frames during flight; RTT ≈ 17 ms | smooth (a few still frames out of ~500) |
 
 - **What did 60 cost?** About twice the server's outgoing bytes per second compared with 30 — every moving object is sent twice as often to every client.
 - **What did it buy?** Positions every ~17 ms instead of ~33 ms, so the ball and the other paddle are smoother and a little less behind.
