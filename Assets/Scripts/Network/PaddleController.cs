@@ -133,10 +133,15 @@ public class PaddleController : NetworkBehaviour
         }
     }
 
-    /// client -> server. The owner's input; the server stores it and moves the paddle on its tick.
+    /// client -> server. The owner's input; the server checks it, stores it and moves the paddle on its tick.
     [ServerRpc]
     private void ServerSetAxis(float axis)
     {
+        // Step 3: a client can send any number. Check it before it becomes state.
+        if (float.IsNaN(axis)) return;                      // not a number: ignore
+        axis = Mathf.Clamp(axis, -1f, 1f);                  // a client that sends 50 gets 1
+        if (Side.Value == Spectator) return;                // a spectator has no paddle to move
+
         _serverAxis = axis;
     }
 
