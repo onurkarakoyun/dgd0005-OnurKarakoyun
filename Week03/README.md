@@ -36,14 +36,14 @@ Onur Karakoyun · DGD0005 Multiplayer Programming · Homework 1
 
 ## Connection card (Step 11)
 
-| | Direction 1 (desktop = server) | Direction 2 (laptop = server) |
+| | Direction 1 (Onur = server) | Direction 2 (Mert = server) |
 |---|---|---|
-| Partner | own laptop (partner session over hotspot still to do) | own laptop |
-| Network | home network (192.168.1.x) | home network |
-| Server IP | 192.168.1.7 (desktop, Ethernet) | _fill in_ |
-| My ClientId + side | desktop: client 0, LEFT · laptop: client _?_, RIGHT | _fill in_ |
-| RTT | laptop: _? ms_ | _fill in_ |
-| Worked first try? | **No.** The desktop's network was set to *Public* and Windows Defender Firewall had an inbound **Block** rule for "Unity 6000.3.2f1 Editor" on Public. After allowing Unity for Private + Public it connected: server HUD showed `Clients: 2`. | _fill in_ |
+| Partner | Mert Çiçek (build .exe) | Onur (build .exe) |
+| Network | Radmin VPN (different home internets) | Radmin VPN |
+| Server IP | 26.78.90.12 (Onur) | 26.12.34.56 (Mert) |
+| My ClientId + side | Onur: client 0, LEFT  |  Onur: client 1, RIGHT |
+| RTT | Mert: 48 ms | Onur: 52 ms |
+| Worked first try? | No — server firewall blocked Unity on Public; allowed Private + Public, then it connected | Yes |
 
 Lesson (Notes 11): "Starting → Stopped" with the right IP is almost always the **server's** firewall, not the code.
 
@@ -86,9 +86,9 @@ Measured with Multiplayer Play Mode (server = Player 2, two clients playing, one
 
 | Tick rate | Server out B/s (rally) | Ball in a client window | Other paddle |
 |---|---|---|---|
-| 10 | _fill in_ | steps / jumps | steps |
-| 30 | _fill in_ | glides | glides, a tick behind |
-| 60 | _fill in_ | glides, smoothest | glides |
+| 10 | ≈ 510 (414–631); server in ≈ 290; each client in ≈ 250 | steps: stands still in up to 30 % of frames (e.g. 130 of 430), visibly jerky; RTT 40–100 ms | glides most of the time, freezes now and then (98 still frames in one second); late |
+| 30 | ≈ 1,370 (1,344–1,415); server in ≈ 860; each client in ≈ 685 | smooth: 0 still frames during flight; RTT 7–33 ms | smooth |
+| 60 | ≈ 2,800 (2,743–2,830); server in ≈ 1,695; each client in ≈ 1,400 | smooth: 0 still frames during flight; RTT ≈ 17 ms | smooth (a few still frames out of ~500) |
 
 - **What did 60 cost?** About twice the server's outgoing bytes per second compared with 30 — every moving object is sent twice as often to every client.
 - **What did it buy?** Positions every ~17 ms instead of ~33 ms, so the ball and the other paddle are smoother and a little less behind.
@@ -150,3 +150,49 @@ Back at **30** for the hand-in.
 9. The **server** decides, using **its own copies** of both paddles (as last received, a tick or two old) and its ball. The client whose paddle "clearly touched it" sees the ball go through (or bounce and snap back). If a client wrote the ball's `InPlay` itself, only its local copy would change — nobody else would see it and it would snap back at the next server send; and any client could serve whenever it liked.
 
 10. 8 objects × 30 ticks/s × 40 bytes = **9,600 B/s ≈ 9.6 kB/s** received per client; with 4 clients the server sends 4 × 9.6 = **38.4 kB/s**. In my Step 10 table, tick 10 cut the traffic to roughly a third and made the ball step in every window; my own paddle did not change because I move it locally every frame — the network only carries it to the others.
+
+## Vocabulary (notes Section 13, for the demo)
+
+| Word | Meaning, in my words |
+|---|---|
+| topology | Who connects to whom and which machine is trusted. |
+| dedicated server | A server process nobody plays on; every player is a client of it. |
+| listen server | One player's game is also the server (the host); trusted, zero ping for them. |
+| peer-to-peer | Players connect to each other directly; nobody is the referee. |
+| client | A player's game: sends what the player wants, shows what the server says. |
+| host | One process that is server and client at the same time. |
+| connection | One client's link to the server. |
+| ClientId | The small number FishNet gives each connection, starting at 0. |
+| tick | One fixed simulation step of the server. |
+| tick rate | Ticks per second (30 here); how often state is sent. |
+| packet | One chunk of bytes on the network, a few hundred bytes, below the ~1,200 B MTU. |
+| UDP vs. TCP | UDP throws packets (may be lost/late); TCP guarantees order and waits for lost bytes. Games use UDP. |
+| reliable / unreliable | Reliable = guaranteed and ordered, costs latency (goals); unreliable = may be lost, always fresh (positions). |
+| RTT / ping | Time for a message to go to the server and back; half is about the one-way delay. |
+| bandwidth | Bytes per second sent/received. |
+| NetworkManager | The one switchboard component that starts server/client and holds the sub-managers. |
+| transport | The layer that moves the bytes (Tugboat = plain UDP); swappable without changing game code. |
+| NetworkObject | Gives an object a network identity, an owner and spawning. |
+| ObjectId | The id of a NetworkObject, the same on every machine. |
+| NetworkBehaviour | Base class for scripts on networked objects: IsOwner, callbacks, SyncVars, RPCs. |
+| scene object | A NetworkObject already in the scene; the server spawns it for every client, no owner. |
+| prefab | A saved object template; networked prefabs are registered in DefaultPrefabObjects. |
+| spawn | The server creating a networked object and telling every client to create its copy. |
+| PlayerSpawner | Spawns the player prefab once per connection, owned by that connection. |
+| owner | The client connection allowed to control an object (or nobody → server). |
+| ownership | Who the owner is: decides IsOwner, who may call ServerRpcs, whose NetworkTransform sends. |
+| observer | A client allowed to see an object and receive its updates. |
+| replication | Copying state from the machine that knows it to the machines that need it. |
+| state vs. event | State has a current value (score) → SyncVar; an event happens once (goal) → RPC. |
+| SyncVar | A field only the server writes; every machine mirrors it, late joiners get it. |
+| SyncList | A SyncVar for a whole list; sends operations, not the list. |
+| OnChange | Callback that fires on every machine when a SyncVar changes. |
+| NetworkTransform | Component that sends position (rotation, scale) every tick and interpolates it. |
+| client-authoritative | The owner decides the value and the server relays it — convenient, cheatable. |
+| interpolation | Drawing an object between the last received positions, a couple of ticks behind, so it glides. |
+| ServerRpc | Method called on a client, runs on the server: a request. |
+| ObserversRpc | Called on the server, runs on every observing client: an event for all. |
+| TargetRpc | Called on the server, runs on one client: a private message. |
+| RequireOwnership | ServerRpc option; `false` lets non-owners call it (FishNet passes the caller's connection). |
+| serialization | Turning values into bytes to send, and back. |
+| interest management | Sending each client only what is relevant to it (near, same scene/team). |
