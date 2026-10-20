@@ -26,6 +26,12 @@ public class PaddleController : NetworkBehaviour
     /// Server-only memory: the last input (-1, 0, +1) the server accepted from the owner.
     private float _serverAxis;
 
+    // Step 4: the rate limit. Server-only, one per paddle = one per client (an instance field, NOT static).
+    private const double MinInputGap = 0.030;               // seconds; one tick at 30 Hz is 33 ms
+    private double _lastInputTime = -1;
+    public int RejectedInputs;
+    private System.Func<string> _rejectedPanel;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics() { All.Clear(); Local = null; }
 
@@ -49,12 +55,17 @@ public class PaddleController : NetworkBehaviour
 
         Debug.Log($"[Server] client {OwnerId} gets side {SideName(side)}");
         GameState.Announce($"client {OwnerId} joined as {SideName(side)}");
+
+        // Step 4: show the count in the server's HUD
+        _rejectedPanel = () => $"Rejected inputs (paddle {OwnerId}): {RejectedInputs}";
+        ConnectionHud.Panels.Add(_rejectedPanel);
     }
 
     public override void OnStopServer()
     {
         base.OnStopServer();
         All.Remove(this);
+        if (_rejectedPanel != null) ConnectionHud.Panels.Remove(_rejectedPanel);
         GameState.Announce($"client {OwnerId} left ({SideName(Side.Value)})");
     }
 
@@ -133,7 +144,7 @@ public class PaddleController : NetworkBehaviour
         }
     }
 
-    /// client -> server. The owner's input; the server checks it, stores it and moves the paddle on its tick.
+    /// client -> server. The owner's input. Order: well-formed? -> too fast? -> write state. The server moves the paddle on its tick.
     [ServerRpc]
     private void ServerSetAxis(float axis)
     {
@@ -141,6 +152,16 @@ public class PaddleController : NetworkBehaviour
         if (float.IsNaN(axis)) return;                      // not a number: ignore
         axis = Mathf.Clamp(axis, -1f, 1f);                  // a client that sends 50 gets 1
         if (Side.Value == Spectator) return;                // a spectator has no paddle to move
+
+        // Step 4: too fast? A keyboard sends one input per tick; anything faster is a program.
+        double now = TimeManager.TicksToTime(TimeManager.Tick);
+        if (_lastInputTime >= 0 && now - _lastInputTime < MinInputGap)
+        {
+            RejectedInputs++;
+            Debug.Log($"[Server] Rejected input from client {OwnerId}: too fast.");
+            return;
+        }
+        _lastInputTime = now;
 
         _serverAxis = axis;
     }
