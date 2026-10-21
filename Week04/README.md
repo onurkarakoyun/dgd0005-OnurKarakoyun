@@ -51,3 +51,43 @@ Screenshot of the server Console after one **C**:
 2. **T moved the paddle on your screen. Why did the ball on the server not notice?** The teleport only changed the client's own copy of the transform; no RPC was sent, and with Client Authoritative off the server never reads the client's position, so the server's paddle — the one the ball collides with — stayed where the server put it.
 3. **Which of the three cheats would also fail without the rate limit, and why?** X and T: X is stopped by the clamp in Step 3 (50 becomes 1) and T by the server authority of Step 1–2 (the client's position is never sent); only C needs the rate limit.
 
+
+---
+
+## Vocabulary (Week 4, for the demo)
+
+| Word | Meaning, in my words |
+|---|---|
+| server authority | The server decides where things are; clients only ask. |
+| client authoritative | The owner's client writes the position and the server believes it (on in Week 3, **off** now). |
+| input | What the player wants (up, down, nothing), not where the paddle is. |
+| axis | The input as one number: +1 up, −1 down, 0 nothing. |
+| ServerRpc | A method the owner client calls but whose body runs on the server (`ServerSetAxis`). |
+| tick | One fixed server step (33 ms at tick rate 30); the owner sends one input per tick. |
+| OnTick | FishNet event fired every tick; the owner sends input and the server moves the paddle there. |
+| TickDelta | The length of one tick in seconds (1/30); used instead of `Time.deltaTime`. |
+| validate | The server checks every input before using it: NaN, clamp, spectator. |
+| NaN | "Not a number" — an invalid float; the server drops it. |
+| clamp | Force a value into a range: `Mathf.Clamp(axis, -1, 1)` turns 50 into 1. |
+| spectator | A connection with no side; its inputs are ignored. |
+| rate limit | The server ignores a second input from the same client inside 30 ms. |
+| timestamp | The time of the last accepted input, kept **per paddle** (`_lastInputTime`). |
+| rejected input | An input the rate limit dropped; counted in `RejectedInputs` and logged. |
+| cheat | A client sending what an honest keyboard can't: 20 inputs at once (C), axis 50 (X), a teleport (T). |
+| NetworkTransform | Sends the server's paddle position to every client, the owner too (`Send To Owner`). |
+| ForceSend | Makes the NetworkTransform send the position this tick even if it didn't change, so a teleport snaps back. |
+| RTT | Round-trip time: input goes to the server, the new position comes back (13 ms here). |
+
+## Lines the teacher may point at
+
+| Line | What it does |
+|---|---|
+| `if (!IsOwner) return;` | Only the owner reads the keyboard. |
+| `ServerSetAxis(axis);` | The owner sends its input to the server, once per tick. |
+| `if (float.IsNaN(axis)) return;` | Drops a broken input. |
+| `axis = Mathf.Clamp(axis, -1f, 1f);` | No input can be bigger than one key press (X cheat fails here). |
+| `if (Side.Value == Spectator) return;` | Spectators can't move a paddle. |
+| `if (_lastInputTime >= 0 && now - _lastInputTime < MinInputGap)` | The 30 ms rate limit; C cheat fails here. |
+| `transform.position += Vector3.forward * _serverAxis * speed * (float)TimeManager.TickDelta;` | The server moves the paddle, at most normal speed, once per tick. |
+| `Court.ClampPaddle(transform);` | Keeps the paddle inside the court, on the server. |
+| `_networkTransform.ForceSend();` | Re-sends the server position every tick; T teleport snaps back. |
