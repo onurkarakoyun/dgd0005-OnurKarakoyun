@@ -31,3 +31,23 @@ The server keeps one timestamp **per paddle** (`_lastInputTime`, an instance fie
 
 Observed (Multiplayer Play Mode, server and two clients as editor instances on one PC): normal play looks the same and both paddles move freely, so the timestamp really is per paddle. The counters grew by about 3 per second per paddle — more than "one or two a minute": the server measures time in whole ticks, and with three editors sharing one PC the clients' ticks drift against the server's, so two honest inputs land in the same server tick more often. Each one costs only a repeated axis value, so the paddle does not stutter.
 
+---
+
+## Step 5 — The cheating client
+
+Debug keys in `PaddleController.Update`, after the owner guard: **C** calls `ServerSetAxis(1f)` 20 times in one frame, **X** calls `ServerSetAxis(50f)` once, **T** sets `transform.position` to the ball's position on the client, with no RPC.
+
+| Key | Server console | Paddle (on the server) |
+|---|---|---|
+| C once | about 19 lines `[Server] Rejected input from client N: too fast.`, counter up by the spam (plus the few honest rejections from Step 4) | moved 0.27 = exactly one tick at normal speed |
+| X once | nothing | moved 0.27 = one tick at normal speed, never faster |
+| T once | nothing | did not move; the ball and the other client never saw it. On my own screen the paddle jumps to the ball and snaps back within a tick, because the server re-sends its position every tick (`NetworkTransform.ForceSend()` in `OnTick`). |
+
+Screenshot of the server Console after one **C**:
+
+![Server console after C](server-console-after-C.png)
+
+1. **C sends 20 inputs and the server accepts one. Why is the paddle not 20 times faster?** All 20 arrive inside one server tick, so the rate limit keeps the first and rejects the rest, and the server only moves the paddle once per tick by `_serverAxis × speed × TickDelta` — sending more inputs never adds more movement.
+2. **T moved the paddle on your screen. Why did the ball on the server not notice?** The teleport only changed the client's own copy of the transform; no RPC was sent, and with Client Authoritative off the server never reads the client's position, so the server's paddle — the one the ball collides with — stayed where the server put it.
+3. **Which of the three cheats would also fail without the rate limit, and why?** X and T: X is stopped by the clamp in Step 3 (50 becomes 1) and T by the server authority of Step 1–2 (the client's position is never sent); only C needs the rate limit.
+

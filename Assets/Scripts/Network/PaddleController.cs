@@ -3,6 +3,7 @@
 // The same script runs on the server, on the owner's client and on every other client;
 // only the answer to IsOwner differs (Notes 4.4, 5).
 using System.Collections.Generic;
+using FishNet.Component.Transforming;
 using FishNet.Connection;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
@@ -31,6 +32,10 @@ public class PaddleController : NetworkBehaviour
     private double _lastInputTime = -1;
     public int RejectedInputs;
     private System.Func<string> _rejectedPanel;
+
+    // Step 5: the server re-sends its paddle position every tick, so a client that teleports
+    // its own copy (cheat key T) is corrected within a tick, even while the paddle stands still.
+    private NetworkTransform _networkTransform;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics() { All.Clear(); Local = null; }
@@ -106,6 +111,14 @@ public class PaddleController : NetworkBehaviour
         if (kb == null) return;
 
         if (kb.spaceKey.wasPressedThisFrame) RequestServe(); // ask; the server decides (Step 8)
+
+        // Week 4 Step 5: debug cheat keys. They stay in the project; the server must survive them.
+        if (kb.cKey.wasPressedThisFrame)                    // C (spam): 20 inputs in one frame
+            for (int i = 0; i < 20; i++) ServerSetAxis(1f);
+        if (kb.xKey.wasPressedThisFrame)                    // X (speed hack): an axis of 50
+            ServerSetAxis(50f);
+        if (kb.tKey.wasPressedThisFrame && NetworkBall.Instance != null)   // T (teleport): on the client, no RPC
+            transform.position = NetworkBall.Instance.transform.position;
     }
 
     // ---------- Week 4: input up, position down ----------
@@ -141,6 +154,10 @@ public class PaddleController : NetworkBehaviour
         {
             transform.position += Vector3.forward * _serverAxis * speed * (float)TimeManager.TickDelta;
             Court.ClampPaddle(transform);
+
+            // ...and tells everyone, every tick, where the paddle really is (corrects cheat key T).
+            if (_networkTransform == null) _networkTransform = GetComponent<NetworkTransform>();
+            if (_networkTransform != null) _networkTransform.ForceSend();
         }
     }
 
