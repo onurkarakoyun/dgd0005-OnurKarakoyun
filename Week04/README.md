@@ -77,17 +77,3 @@ Screenshot of the server Console after one **C**:
 | NetworkTransform | Sends the server's paddle position to every client, the owner too (`Send To Owner`). |
 | ForceSend | Makes the NetworkTransform send the position this tick even if it didn't change, so a teleport snaps back. |
 | RTT | Round-trip time: input goes to the server, the new position comes back (13 ms here). |
-
-## Lines the teacher may point at
-
-| Line | What it does |
-|---|---|
-| `if (!IsOwner) return;` | Only the owner reads the keyboard. |
-| `ServerSetAxis(axis);` | The owner sends its input to the server, once per tick. |
-| `if (float.IsNaN(axis)) return;` | Drops a broken input. |
-| `axis = Mathf.Clamp(axis, -1f, 1f);` | No input can be bigger than one key press (X cheat fails here). |
-| `if (Side.Value == Spectator) return;` | Spectators can't move a paddle. |
-| `if (_lastInputTime >= 0 && now - _lastInputTime < MinInputGap)` | The 30 ms rate limit; C cheat fails here. |
-| `transform.position += Vector3.forward * _serverAxis * speed * (float)TimeManager.TickDelta;` | The server moves the paddle, at most normal speed, once per tick. |
-| `Court.ClampPaddle(transform);` | Keeps the paddle inside the court, on the server. |
-| `_networkTransform.ForceSend();` | Re-sends the server position every tick; T teleport snaps back. |
