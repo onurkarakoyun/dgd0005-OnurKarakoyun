@@ -15,8 +15,8 @@ Homework 1 Pong, unchanged, now run on a **host**: one process is the server **a
 
 - **Step 0:** Start Server in the editor, Start Client in a Play Mode instance, one rally: no red lines, the score shows in the HUD.
 - **Step 1:** main editor only, Start Server, then `127.0.0.1` + Start Client in the same window. Console:
-  `[Server] server Started` → `[Client] client Starting` → `[Server] client 0 connected. Clients: 1` → `[Client] client Started` → `[Client] I am client 0, playing LEFT. My paddle is #3`. A LEFT paddle, W/S move it, the ball waits. HUD: `Server + Client`, `Clients: 1`, `ClientId: 0`.
-- **RTT on the host:** my HUD shows **33 ms**, not 0 — that is exactly one tick at 30 Hz. FishNet answers the ping on the next tick; nothing travels over a network, the client talks to its own server in memory. Real network delay: 0.
+  `[Server] server Started` → `[Client] client Starting` → `[Server] client 0 connected. Clients: 1` → `[Client] client Started` → `[Client] I am client 0, playing LEFT. My paddle is #3`. A LEFT paddle, W/S move it, the ball waits. HUD: `Server + Client`, `Clients: 1`, `ClientId: 0`, `RTT: 0 ms`.
+- **RTT on the host:** **0 ms** — nothing travels over a network, the client talks to its own server in memory.
 - **Step 2:** `ConnectionHud` got **Start Host** (shown when server and client are both Stopped: `ServerManager.StartConnection()` then `ClientManager.StartConnection("127.0.0.1", port)`) and **Stop Host** (both Started: stop the client, then the server). `ConnectionLogger.OnClientConnectionState` prints `[Host] This process is the server AND a client. RTT is 0 ms.` when the client is Started and `ServerManager.Started` is true — checked in the client handler, because by then the server has started.
 - **Start Server only:** only `[Server]` lines, the ball is spawned, no paddle, no keyboard. That is the dedicated server from Week 4 — same scripts.
 
@@ -62,8 +62,8 @@ The host logs `client 1 connected`, a RIGHT paddle appears, the guest's HUD show
 | Network | classroom LAN, cable | classroom LAN, cable |
 | Host's address | 192.168.1.7 (my desktop) | 192.168.1.12 (Mert's laptop) |
 | My ClientId + side | 0, LEFT (host) | 1, RIGHT (guest) |
-| My RTT | 33 ms on the HUD = one tick, tells nothing | 4 ms |
-| Mert's RTT | 3 ms | 33 ms (he is the host) |
+| My RTT | 0 ms (host), tells nothing | 4 ms |
+| Mert's RTT | 3 ms | 0 ms (he is the host) |
 | Connected first try? | **Yes** — my firewall was already fixed in Week 3. | **No.** Starting → Stopped after ~10 s. Fix line 2: the host's firewall — Mert allowed Unity for Private + Public, then it connected on the first retry. |
 
 Three rallies each way. The guest's paddle moved on both machines; the host saw `client 1 connected`.
@@ -79,7 +79,7 @@ Three rallies each way. The guest's paddle moved on both machines; the host saw 
 ## Self-review
 
 1. **Start Host: which two calls? Why is the host's RTT 0?**
-   `_nm.ServerManager.StartConnection();` and `_nm.ClientManager.StartConnection("127.0.0.1", port);`. The client talks to a server in the same process, through memory — no cable, no network delay (my HUD shows 33 ms, which is only the one-tick wait for the ping answer).
+   `_nm.ServerManager.StartConnection();` and `_nm.ClientManager.StartConnection("127.0.0.1", port);`. The client talks to a server in the same process, through memory — no cable, no network delay.
 
 2. **The guest's paddle on the host, the guest and a spectator:**
 
