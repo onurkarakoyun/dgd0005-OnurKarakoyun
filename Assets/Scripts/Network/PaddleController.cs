@@ -1,4 +1,4 @@
-// Pong — Week 3 Steps 4 and 8, Week 4 Step 2. The networked paddle. One prefab, spawned once per connection by the PlayerSpawner.
+// Pong — Week 3 Steps 4 and 8, Week 4 Step 2, Week 5 Step 3. The networked paddle. One prefab, spawned once per connection by the PlayerSpawner.
 // Week 4: the client sends only its INPUT (an axis, every tick); the SERVER moves the paddle.
 // The same script runs on the server, on the owner's client and on every other client;
 // only the answer to IsOwner differs (Notes 4.4, 5).
@@ -40,6 +40,10 @@ public class PaddleController : NetworkBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics() { All.Clear(); Local = null; }
 
+    // Week 5 Step 3: show All.Count. On a host with one paddle it must say 1, not 2.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void AddCountPanel() => ConnectionHud.Panels.Add(() => $"Paddles in All: {All.Count}");
+
     private void Awake()
     {
         Side.OnChange += OnSideChange;      // subscribe in Awake, before the first value arrives
@@ -51,14 +55,15 @@ public class PaddleController : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
-        if (!All.Contains(this)) All.Add(this);
+        if (!All.Contains(this)) All.Add(this);             // Week 5: guarded — on a host the client half adds it too
+        Debug.Log($"[Server] OnStartServer paddle #{ObjectId}: All.Count = {All.Count}");
 
         int side = Spectator;                               // first free side, else spectator
         if (!IsTaken(Left)) side = Left;
         else if (!IsTaken(Right)) side = Right;
         Side.Value = side;
 
-        Debug.Log($"[Server] client {OwnerId} gets side {SideName(side)}");
+        Debug.Log($"[Server] Spawned paddle #{ObjectId} for client {OwnerId}: {SideName(side)}");
         GameState.Announce($"client {OwnerId} joined as {SideName(side)}");
 
         // Step 4: show the count in the server's HUD
@@ -85,12 +90,13 @@ public class PaddleController : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-        if (!All.Contains(this)) All.Add(this);
+        if (!All.Contains(this)) All.Add(this);             // Week 5: guarded — on a host the server half already added it
+        Debug.Log($"[Client] OnStartClient paddle #{ObjectId}: All.Count = {All.Count}");
 
         if (IsOwner)
         {
             Local = this;
-            Debug.Log($"[Client] I am client {OwnerId}, side {SideName(Side.Value)}");
+            Debug.Log($"[Client] I am client {OwnerId}, playing {SideName(Side.Value)}. My paddle is #{ObjectId}");
         }
         Place();
     }

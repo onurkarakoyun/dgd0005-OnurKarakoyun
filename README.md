@@ -18,6 +18,10 @@ Networked Pong on a dedicated server: two players each move their own paddle, th
 2. On each player instance type the server's IP in the HUD **Address** box (`127.0.0.1` on the same PC) → **Start Client**.
 3. Move with **W/S** or **↑/↓**; the serving side presses **Space** to serve.
 
+**On a host (Week 5):** one click on **Start Host** starts the server and a client on `127.0.0.1` in the same process; guests join with **Start Client** on the host's IP. **Stop Host** stops the client, then the server.
+
 ## Changes each week
 
 - **Week 3:** FishNet project, connection logger, networked paddles (`PaddleController`), one server-moved ball (`NetworkBall`, `BallSpawner`), shared score and event feed (`GameState`), serve/goal RPCs, network statistics at tick rate 30.
+- **Week 4:** server authority — the owner sends only its input every tick, the server moves and clamps the paddle; input checks (NaN, clamp, spectator), a 30 ms rate limit per client, cheat keys C/X/T. Notes: [`Week04/README.md`](Week04/README.md).
+- **Week 5:** Pong on a host — Start Host / Stop Host buttons, the `[Host]` log line, `All.Count` panel with both `All.Add` calls guarded. Notes: [`Week05/README.md`](Week05/README.md).

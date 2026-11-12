@@ -1,4 +1,5 @@
-// Pong — the given HUD (Tools/). Put it on an empty "Hud" object. Do not edit.
+// Pong — the given HUD (Tools/). Put it on an empty "Hud" object.
+// Week 5 Step 2: added Start Host / Stop Host (one process = server + client).
 // Start Server / Start Client buttons, the address field, RTT, tick, client count and bytes per second.
 // Your scripts draw through it:
 //   ConnectionHud.Panels.Add(() => "text");   a panel that is redrawn every frame (score, feed, ...)
@@ -36,6 +37,7 @@ public class ConnectionHud : MonoBehaviour
     }
 
     private string _address = "localhost";
+    private ushort _port = 7770;
     private NetworkManager _nm;
 
     // bytes per second, measured from the StatisticsManager (Step 10)
@@ -53,7 +55,11 @@ public class ConnectionHud : MonoBehaviour
         if (_nm == null) { Debug.LogWarning("[Hud] No NetworkManager in the scene."); return; }
 
         Tugboat tugboat = _nm.TransportManager.GetTransport<Tugboat>();
-        if (tugboat != null) _address = tugboat.GetClientAddress();
+        if (tugboat != null)
+        {
+            _address = tugboat.GetClientAddress();
+            _port = tugboat.GetPort();
+        }
 
         StatisticsManager sm = _nm.StatisticsManager;
         if (sm != null && sm.TryGetNetworkTrafficStatistics(out _stats))
@@ -132,6 +138,24 @@ public class ConnectionHud : MonoBehaviour
             else        _nm.ClientManager.StartConnection(_address.Trim());
         }
         GUILayout.EndHorizontal();
+
+        // Week 5 Step 2: the host = Start Server + Start Client on 127.0.0.1, in this one process.
+        if (!server && !client)
+        {
+            if (GUILayout.Button("Start Host", GUILayout.Height(24)))
+            {
+                _nm.ServerManager.StartConnection();
+                _nm.ClientManager.StartConnection("127.0.0.1", _port);
+            }
+        }
+        else if (server && client)
+        {
+            if (GUILayout.Button("Stop Host", GUILayout.Height(24)))
+            {
+                _nm.ClientManager.StopConnection();          // the client half first...
+                _nm.ServerManager.StopConnection(true);      // ...then the server
+            }
+        }
 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Address", GUILayout.Width(55));
