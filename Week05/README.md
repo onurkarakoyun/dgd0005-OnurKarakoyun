@@ -47,7 +47,7 @@ The host logs `client 1 connected`, a RIGHT paddle appears, the guest's HUD show
 - The host's serve starts the instant Space is pressed; the guest's serve starts about one RTT later.
 - **Why:** the server bounces the ball on its copy of each paddle. The guest's paddle on the server is the position from the guest's last input, a tick old. The host's paddle on the server *is* the host's paddle — no delay, no copy. That is host advantage.
 - **Guest's RTT:** 8–33 ms (two editors on one PC; it jumps between under a tick and one tick).
-- **Tick rate 10:** on the guest the ball moves in visible steps, about 100 ms apart, and the snap-backs at the paddle are bigger; the guest's own paddle reacts later because its input is only sent every 100 ms. On the host the ball looks the same steps but the bounce is always right. Back to **30**.
+- **Tick rate 10:** on the guest the ball moves in visible steps, about 100 ms apart, and the snap-backs at the paddle are bigger; the guest's own paddle reacts later because its input is only sent every 100 ms. On the host the ball stays smooth and the bounce is always right: the host draws the server's own ball, nothing is sent to it. Back to **30**.
 
 ## Step 6 — the host leaves
 
@@ -109,6 +109,6 @@ Three rallies each way. The guest's paddle moved on both machines; the host saw 
    | the feed | state (SyncList) |
 
 6. **A guest writes `GameState.Instance.LeftScore.Value = 9`.**
-   Only the guest's local copy changes (FishNet warns that a client cannot write a server SyncVar); nobody else sees it and the next server value overwrites it. On the host the same line runs on the **server** half, which owns the SyncVar, so it really changes the score for everyone — that is why "works on the host" is not a test; test from a guest.
+   Nothing changes. FishNet's `SyncVar.SetValue` checks `CanNetworkSetValues` first: the guest is not the server, so it logs a warning and returns — the score is not written, not even on the guest's own screen, and nothing is sent. On the host the same line runs in a process whose **server** is active, so the check passes and the score really changes for everyone — that is why "works on the host" is not a test; test from a guest.
 
 7. **The feed logs twice on the host.** The goal sound/flash belongs behind `if (!asServer)` in the `OnChange` handler (or in the `ObserversRpc`, which runs once per client): on the host the server-side call is skipped, so it plays once. The score log does not double because `GameState.Goal()` runs only on the server (`if (!IsServerInitialized) return;`) and logs once; the client half just mirrors the SyncVar without logging.
