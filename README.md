@@ -20,8 +20,11 @@ Networked Pong on a dedicated server: two players each move their own paddle, th
 
 **On a host (Week 5):** one click on **Start Host** starts the server and a client on `127.0.0.1` in the same process; guests join with **Start Client** on the host's IP. **Stop Host** stops the client, then the server.
 
+**Through Unity Relay (Week 6):** **Host via Relay** shows a six-letter `JOIN CODE`; the guest types it and clicks **Join via Relay** — no IP address, works from another network. The guest must run this repo (same Unity cloud project).
+
 ## Changes each week
 
 - **Week 3:** FishNet project, connection logger, networked paddles (`PaddleController`), one server-moved ball (`NetworkBall`, `BallSpawner`), shared score and event feed (`GameState`), serve/goal RPCs, network statistics at tick rate 30.
 - **Week 4:** server authority — the owner sends only its input every tick, the server moves and clamps the paddle; input checks (NaN, clamp, spectator), a 30 ms rate limit per client, cheat keys C/X/T. Notes: [`Week04/README.md`](Week04/README.md).
 - **Week 5:** Pong on a host — Start Host / Stop Host buttons, the `[Host]` log line, `All.Count` panel with both `All.Add` calls guarded. Notes: [`Week05/README.md`](Week05/README.md).
+- **Week 6:** guest cheats fail, host cheats work (debug key G), serve rate limit 1 s per player with a `TargetRpc` refusal; Unity Relay — Multiplayer Services + FishyUnityTransport (`UnityTransport`, port 7770), `RelayLink`, Host/Join via Relay buttons and the join code. Notes: [`Week06/README.md`](Week06/README.md).

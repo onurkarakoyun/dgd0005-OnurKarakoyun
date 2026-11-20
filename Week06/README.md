@@ -97,13 +97,23 @@ One rally: LEFT served, RIGHT scored, **0 : 1** in both windows. Guest RTT throu
 
 ## Step 7 — Your partner, from another network
 
-_To do with the partner: they clone this repo, I Host via Relay and send the code, they Join via Relay from another network. Then swap._
+Mert cloned my repo and opened it in Unity 6000.3.2f1 — a join code works only inside one Unity cloud project, so the guest must run the host's project. I clicked **Host via Relay** at home and sent the code on WhatsApp; Mert typed it on his laptop on a phone hotspot and clicked **Join via Relay**. We played to 3 points (1 : 3, Mert won). Then we swapped: I cloned Mert's repo, he hosted.
 
-| | |
-|---|---|
-| Partner's name | _fill in_ |
-| Who hosted, who joined | _fill in_ |
-| The two networks | _fill in_ |
-| Guest RTT through the Relay | _fill in_ |
-| Guest RTT on 127.0.0.1 (Step 6) | 0–33 ms |
-| First try? If not, which fix line | _fill in_ |
+| | Direction 1 | Direction 2 |
+|---|---|---|
+| Partner's name | Mert Çiçek | Mert Çiçek |
+| Who hosted, who joined | I hosted (LEFT), Mert joined (RIGHT) | Mert hosted, I joined |
+| The two networks | my home Wi-Fi (fibre) ↔ Mert's phone hotspot (4.5G) | Mert's home Wi-Fi ↔ my phone hotspot (4.5G) |
+| Guest RTT through the Relay | 53–70 ms | 70–85 ms |
+| Guest RTT on 127.0.0.1 (Step 6) | 0–33 ms | 0–33 ms |
+| First try? If not, which fix line | **Yes.** | **No.** I first typed Mert's code into **my** Pong → `[Relay] Join failed`. Fix line: *"Partner's code is refused, yours works → two different cloud projects. The guest must run the host's repo."* I opened Mert's repo and it joined. |
+
+Nobody typed an IP, nobody changed a router.
+
+Guest window (Mert) at the end, with the RTT and the score:
+
+![Guest window through the Relay, RTT and score](guest-relay-step7.png)
+
+1. **Who connects to whom through the Relay?** Nobody connects to anybody directly: the host and the guest each open a connection **out** to the same Unity Relay server (the join code points to it), and the Relay forwards every packet between them.
+2. **Why did no router need a change?** Both machines only make outgoing connections to the Relay server, which every home router and phone hotspot allows; nobody has to accept an incoming connection, so no port forwarding and no public IP are needed.
+3. **The guest's paddle feels later than in Step 6 on 127.0.0.1. Where did the extra milliseconds come from?** Every input now travels guest → Relay server → host and every position back host → Relay → guest, over two real internet links (the hotspot is the slow one) instead of inside one PC — that detour is the 53–85 ms RTT.
