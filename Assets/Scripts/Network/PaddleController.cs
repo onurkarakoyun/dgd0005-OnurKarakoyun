@@ -1,4 +1,4 @@
-// Pong — Week 3 Steps 4 and 8, Week 4 Step 2, Week 5 Step 3. The networked paddle. One prefab, spawned once per connection by the PlayerSpawner.
+// Pong — Week 3 Steps 4 and 8, Week 4 Step 2, Week 5 Step 3, Homework 3 Steps 1–2. The networked paddle. One prefab, spawned once per connection by the PlayerSpawner.
 // Week 4: the client sends only its INPUT (an axis, every tick); the SERVER moves the paddle.
 // The same script runs on the server, on the owner's client and on every other client;
 // only the answer to IsOwner differs (Notes 4.4, 5).
@@ -30,6 +30,10 @@ public class PaddleController : NetworkBehaviour
     // Step 4: the rate limit. Server-only, one per paddle = one per client (an instance field, NOT static).
     private const double MinInputGap = 0.030;               // seconds; one tick at 30 Hz is 33 ms
     private double _lastInputTime = -1;
+
+    // Homework 3 Step 2: the serve limit. Server-only, one per paddle = one per player (NOT static).
+    private const double MinServeGap = 1.0;                 // seconds
+    private double _lastServeTime = -1;
     public int RejectedInputs;
     private System.Func<string> _rejectedPanel;
 
@@ -116,7 +120,7 @@ public class PaddleController : NetworkBehaviour
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
 
-        if (kb.spaceKey.wasPressedThisFrame) RequestServe(); // ask; the server decides (Step 8)
+        if (kb.spaceKey.wasPressedThisFrame) ServerRequestServe(); // ask; the server decides (Step 8)
 
         // Week 4 Step 5: debug cheat keys. They stay in the project; the server must survive them.
         if (kb.cKey.wasPressedThisFrame)                    // C (spam): 20 inputs in one frame
@@ -125,6 +129,8 @@ public class PaddleController : NetworkBehaviour
             ServerSetAxis(50f);
         if (kb.tKey.wasPressedThisFrame && NetworkBall.Instance != null)   // T (teleport): on the client, no RPC
             transform.position = NetworkBall.Instance.transform.position;
+        if (kb.gKey.wasPressedThisFrame && GameState.Instance != null)   // G (score edit): a direct SyncVar write, no RPC
+            GameState.Instance.LeftScore.Value = 9;
     }
 
     // ---------- Week 4: input up, position down ----------
@@ -193,12 +199,22 @@ public class PaddleController : NetworkBehaviour
 
     /// client -> server. A request the server may refuse.
     [ServerRpc]
-    private void RequestServe()
+    private void ServerRequestServe()
     {
         GameState gs = GameState.Instance;
         NetworkBall ball = NetworkBall.Instance;
-        if (gs == null || ball == null) return;
-        if (Side.Value != gs.ServingSide.Value) return;     // not your serve
+        if (gs == null || ball == null) return;             // well-formed?
+
+        // Homework 3 Step 2: too fast? One serve request per second per player.
+        double now = TimeManager.TicksToTime(TimeManager.Tick);
+        if (_lastServeTime >= 0 && now - _lastServeTime < MinServeGap)
+        {
+            TargetRefused(Owner, "TOO FAST");
+            return;
+        }
+        _lastServeTime = now;
+
+        if (Side.Value != gs.ServingSide.Value) return;     // allowed by the rule? not your serve
         if (ball.InPlay.Value) return;                       // already in play
 
         ball.Serve(1 - Side.Value);                          // towards the other side
@@ -217,6 +233,13 @@ public class PaddleController : NetworkBehaviour
     public void YouServe(NetworkConnection target)
     {
         ConnectionHud.Flash("YOU SERVE");
+    }
+
+    /// server -> one client. Tells only the refused player why (Homework 3 Step 2).
+    [TargetRpc]
+    private void TargetRefused(NetworkConnection target, string why)
+    {
+        ConnectionHud.Flash(why);
     }
 
     public static PaddleController FindBySide(int side)
