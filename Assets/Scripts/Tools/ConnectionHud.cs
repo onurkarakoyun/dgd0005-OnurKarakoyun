@@ -1,5 +1,6 @@
 // Pong — the given HUD (Tools/). Put it on an empty "Hud" object.
 // Week 5 Step 2: added Start Host / Stop Host (one process = server + client).
+// Homework 3 Step 6: Host via Relay / Join via Relay and the JOIN CODE label.
 // Start Server / Start Client buttons, the address field, RTT, tick, client count and bytes per second.
 // Your scripts draw through it:
 //   ConnectionHud.Panels.Add(() => "text");   a panel that is redrawn every frame (score, feed, ...)
@@ -38,6 +39,11 @@ public class ConnectionHud : MonoBehaviour
 
     private string _address = "localhost";
     private ushort _port = 7770;
+
+    // Homework 3 Step 6: Relay
+    private string _joinCode = "";      // what the guest types
+    private string _relayCode = "";     // what the host shows
+    private bool _relayBusy;            // true while a Relay call is running: hides the buttons (no double rooms)
     private NetworkManager _nm;
 
     // bytes per second, measured from the StatisticsManager (Step 10)
@@ -47,7 +53,23 @@ public class ConnectionHud : MonoBehaviour
     private float _windowStart;
     private static FieldInfo _inField, _outField, _bytesField;
 
-    private GUIStyle _box, _flashStyle;
+    private GUIStyle _box, _flashStyle, _codeStyle;
+
+    private async void HostViaRelay()
+    {
+        _relayBusy = true;
+        try { _relayCode = await RelayLink.StartHostAsync(_nm); }
+        catch (Exception e) { Debug.LogError($"[Relay] Host failed: {e.Message}"); }
+        finally { _relayBusy = false; }
+    }
+
+    private async void JoinViaRelay()
+    {
+        _relayBusy = true;
+        try { await RelayLink.StartClientAsync(_nm, _joinCode); }
+        catch (Exception e) { Debug.LogError($"[Relay] Join failed: {e.Message}"); }
+        finally { _relayBusy = false; }
+    }
 
     private void Start()
     {
@@ -111,6 +133,7 @@ public class ConnectionHud : MonoBehaviour
         {
             _box = new GUIStyle(GUI.skin.box) { alignment = TextAnchor.UpperLeft, fontSize = 12, richText = true, padding = new RectOffset(6, 6, 4, 4) };
             _flashStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 40, fontStyle = FontStyle.Bold };
+            _codeStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperCenter, fontSize = 32, fontStyle = FontStyle.Bold };
         }
 
         GUILayout.BeginArea(new Rect(8, 8, 250, Screen.height - 16));
@@ -154,8 +177,21 @@ public class ConnectionHud : MonoBehaviour
             {
                 _nm.ClientManager.StopConnection();          // the client half first...
                 _nm.ServerManager.StopConnection(true);      // ...then the server
+                _relayCode = "";
             }
         }
+
+        // Homework 3 Step 6: the same host and client, through Unity Relay, with a join code instead of an IP.
+        if (!server && !client && !_relayBusy)
+        {
+            if (GUILayout.Button("Host via Relay", GUILayout.Height(24))) HostViaRelay();
+            GUILayout.BeginHorizontal();
+            _joinCode = GUILayout.TextField(_joinCode, 6, GUILayout.Width(80));
+            if (GUILayout.Button("Join via Relay", GUILayout.Height(22))) JoinViaRelay();
+            GUILayout.EndHorizontal();
+        }
+        else if (_relayBusy)
+            GUILayout.Box("Relay: working...", _box);
 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Address", GUILayout.Width(55));
@@ -191,6 +227,10 @@ public class ConnectionHud : MonoBehaviour
         }
 
         GUILayout.EndArea();
+
+        // --- Homework 3: the join code, big, while this process hosts through Relay ---
+        if (!string.IsNullOrEmpty(_relayCode) && server)
+            GUI.Label(new Rect(0, 12, Screen.width, 50), $"JOIN CODE: {_relayCode}", _codeStyle);
 
         // --- flash ---
         if (_flash != null && Time.time < _flashUntil)
