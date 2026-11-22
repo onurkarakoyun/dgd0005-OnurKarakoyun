@@ -117,3 +117,45 @@ Guest window (Mert) at the end, with the RTT and the score:
 1. **Who connects to whom through the Relay?** Nobody connects to anybody directly: the host and the guest each open a connection **out** to the same Unity Relay server (the join code points to it), and the Relay forwards every packet between them.
 2. **Why did no router need a change?** Both machines only make outgoing connections to the Relay server, which every home router and phone hotspot allows; nobody has to accept an incoming connection, so no port forwarding and no public IP are needed.
 3. **The guest's paddle feels later than in Step 6 on 127.0.0.1. Where did the extra milliseconds come from?** Every input now travels guest → Relay server → host and every position back host → Relay → guest, over two real internet links (the hotspot is the slow one) instead of inside one PC — that detour is the 53–85 ms RTT.
+
+---
+
+## Vocabulary (Week 6, for the demo)
+
+| Word | Meaning, in my words |
+|---|---|
+| host / listen server | One player's game is also the server; that player's numbers are the rules. |
+| guest | A client that joins a host; everything it does is a request the host checks. |
+| host advantage | The host has no delay and no copy: the server *is* its game. |
+| request | An RPC the server checks before it acts (`ServerSetAxis`, `ServerRequestServe`). |
+| direct write | Changing a transform or SyncVar yourself; works only where the server runs. |
+| rate limit | The server ignores a second request from the same player too soon (30 ms input, 1 s serve). |
+| TargetRpc | Server → one client; used to tell only the refused player "TOO FAST". |
+| dedicated server | A server nobody plays on; the only fair choice for ranked games with strangers. |
+| NAT / router | The home box that blocks incoming connections; why a guest cannot reach a host's IP from outside. |
+| port forwarding | Opening a router port by hand — Relay makes it unnecessary. |
+| Unity Relay | A Unity server both players connect **out** to; it forwards their packets. |
+| allocation | A reserved slot on one Relay server (`CreateAllocationAsync`). |
+| join code | Six characters that stand for the host's allocation (`GetJoinCodeAsync`). |
+| join allocation | What the guest gets from the code: the same Relay server's data (`JoinAllocationAsync`). |
+| transport | The layer that moves the bytes: Tugboat (plain UDP, IP) or UnityTransport (can use Relay). |
+| UnityTransport | Unity's transport, used by FishNet through FishyUnityTransport; needed for Relay. |
+| SetRelayServerData | Tells UnityTransport to talk through the Relay; must run before `StartConnection`. |
+| anonymous sign-in | Unity Authentication without a password; Relay needs a signed-in player, nothing secret in the repo. |
+| cloud project | The Unity Dashboard project the repo is linked to; a join code works only inside it. |
+| DTLS | Encrypted UDP — the connection type used to the Relay (`"dtls"`). |
+
+## Lines the teacher may point at
+
+| Line | What it does |
+|---|---|
+| `GameState.Instance.LeftScore.Value = 9;` | Cheat G: a direct SyncVar write — fails on a guest, works on the host. |
+| `if (_lastServeTime >= 0 && now - _lastServeTime < MinServeGap)` | The 1 s serve limit, per player (instance field). |
+| `TargetRefused(Owner, "TOO FAST");` | Tells only the player who pressed too fast. |
+| `transform.position = NetworkBall.Instance.transform.position;` | Cheat T: a direct write — snaps back on a guest, sticks on the host. |
+| `await AuthenticationService.Instance.SignInAnonymouslyAsync();` | Signs in to Unity Services without a password, so Relay can be used. |
+| `Allocation allocation = await RelayService.Instance.CreateAllocationAsync(MaxGuests);` | The host reserves a slot on a Relay server. |
+| `string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);` | Turns that slot into the six-letter code. |
+| `JoinAllocation allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);` | The guest finds the same Relay server from the code. |
+| `transport.SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, "dtls"));` | Points UnityTransport at the Relay — before `StartConnection`. |
+| `if (!server && !client && !_relayBusy)` | Shows the Relay buttons only when offline and no call is running (no double rooms). |
